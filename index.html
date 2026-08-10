@@ -236,7 +236,10 @@ let state = {
   week: 1,
   weekArchive: [],
   scoutOfWeek: null,
-  matches: []
+  matches: [],
+  rulesText: "",
+  pointsGuide: [],
+  badges: []
 };
 const DEFAULT_CATEGORIES = [
   { icon:"📅", label:"حضور والتزام" }, { icon:"🧭", label:"مهارات كشفية" },
@@ -244,7 +247,7 @@ const DEFAULT_CATEGORIES = [
   { icon:"🌟", label:"خدمة ومبادرة" }, { icon:"✏️", label:"أخرى" }
 ];
 const DEFAULT_PATROLS = [
-  { name:"سرب النسر", color:"#9e1b22" }, { name:"سرب الصقر", color:"#1f6b3a" }, { name:"سرب الذئب", color:"#20242a" }
+  { name:"طليعة النسر", color:"#9e1b22" }, { name:"طليعة الصقر", color:"#1f6b3a" }, { name:"طليعة الذئب", color:"#20242a" }
 ];
 
 function p(){ return Math.random().toString(36).slice(2,9); }
@@ -327,10 +330,10 @@ function roleSelectView(){
     <div class="role-choice">
       <div class="patch" data-action="goLogin">
         <h2>🔐 دخول القادة</h2>
-        <div class="small-note">لإدارة النقاط والأسراب والمباريات</div>
+        <div class="small-note">لإدارة النقاط والطلائع والمباريات</div>
       </div>
       <div class="patch" data-action="goParent">
-        <h2>👨‍👩‍👧 عرض النقاط لأهالي الكشافين</h2>
+        <h2>👨‍👩‍👧 عرض النقاط لأهالي الأشبال</h2>
         <div class="small-note">شاهدوا نقاط وترتيب أبنائكم مباشرة</div>
       </div>
     </div>
@@ -364,8 +367,9 @@ function loginView(){
 /* ===================== ADMIN SHELL ===================== */
 function adminShell(){
   const tabs = [
-    ['home','🏠 الرئيسية'], ['points','⭐ نقاط'], ['students','👥 الكشافون'],
-    ['patrols','🏅 الأسراب'], ['log','📋 السجل'], ['league','⚽ الدوري'], ['data','💾 نسخة']
+    ['home','🏠 الرئيسية'], ['points','⭐ نقاط'], ['students','👥 الأشبال'],
+    ['patrols','🏅 الطلائع'], ['badges','🎖️ الشارات'], ['guide','🎯 آلية النقاط'], ['rules','📜 القوانين'],
+    ['log','📋 السجل'], ['league','⚽ الدوري'], ['data','💾 نسخة']
   ];
   return `
   <div class="topbar">
@@ -390,6 +394,9 @@ function tabContent(){
     case 'points': return renderPoints();
     case 'students': return renderStudents();
     case 'patrols': return renderPatrols();
+    case 'badges': return renderBadges();
+    case 'guide': return renderGuide();
+    case 'rules': return renderRules();
     case 'log': return renderLog();
     case 'league': return renderLeague();
     case 'data': return renderData();
@@ -405,7 +412,7 @@ function renderHome(){
   return `
   <div class="stats-row">
     <div class="stat-badge"><b>${state.students.length}</b><span>كشّاف</span></div>
-    <div class="stat-badge"><b>${state.patrols.length}</b><span>سرب</span></div>
+    <div class="stat-badge"><b>${state.patrols.length}</b><span>طليعة</span></div>
     <div class="stat-badge"><b>${totalPts}</b><span>نقطة</span></div>
   </div>
 
@@ -416,7 +423,7 @@ function renderHome(){
 
   <div class="two-col">
     <div class="patch">
-      <h2>🥇 أعلى الكشافين نقاطاً</h2>
+      <h2>🥇 أعلى الأشبال نقاطاً</h2>
       ${topStudents.length? topStudents.map((s,i)=>`
         <div class="list-row">
           <div class="row" style="align-items:center;">
@@ -425,10 +432,10 @@ function renderHome(){
             <div><div class="name">${s.name}</div><div class="pill">${patrolName(s.patrolId)}</div></div>
           </div>
           <div class="badge-total">${totalPoints(s.id)} نقطة</div>
-        </div>`).join('') : `<div class="small-note">لا يوجد كشافون بعد</div>`}
+        </div>`).join('') : `<div class="small-note">لا يوجد أشبال بعد</div>`}
     </div>
     <div class="patch">
-      <h2>🏅 ترتيب الأسراب</h2>
+      <h2>🏅 ترتيب الطلائع</h2>
       ${topPatrols.length? topPatrols.map((pr,i)=>`
         <div class="list-row">
           <div class="row" style="align-items:center;">
@@ -437,15 +444,15 @@ function renderHome(){
             <div class="name">${pr.name}</div>
           </div>
           <div class="badge-total">${patrolTotal(pr.id)} نقطة</div>
-        </div>`).join('') : `<div class="small-note">لا يوجد أسراب بعد</div>`}
+        </div>`).join('') : `<div class="small-note">لا يوجد طلائع بعد</div>`}
     </div>
   </div>
 
   <div class="patch">
     <h2>⭐ كشّاف الأسبوع</h2>
-    <label>اختر كشافاً يدوياً (الأخلاق، الالتزام، روح المبادرة...)</label>
+    <label>اختر شبلاً يدوياً (الأخلاق، الالتزام، روح المبادرة...)</label>
     <select id="scoutOfWeekSel">
-      <option value="">— اختر كشافاً —</option>
+      <option value="">— اختر شبلاً —</option>
       ${state.students.map(s=>`<option value="${s.id}" ${state.scoutOfWeek===s.id?'selected':''}>${s.name}</option>`).join('')}
     </select>
     <button class="btn-primary" style="margin-top:10px;" data-action="setScoutOfWeek">⭐ تثبيت كشّاف الأسبوع</button>
@@ -463,7 +470,7 @@ function renderPoints(){
   return `
   <div class="patch">
     <h2>⭐ منح نقاط فردية</h2>
-    <label>الكشاف</label>
+    <label>الشبل</label>
     <select id="pf_student">
       <option value="">— اختر —</option>
       ${state.students.map(s=>`<option value="${s.id}" ${pointsForm.studentId===s.id?'selected':''}>${s.name} (${patrolName(s.patrolId)})</option>`).join('')}
@@ -484,12 +491,12 @@ function renderPoints(){
 
   <div class="patch">
     <h2>👥 منح جماعي</h2>
-    <label>السرب</label>
+    <label>الطليعة</label>
     <select id="pf_patrolFilter">
-      <option value="">— كل الكشافين —</option>
+      <option value="">— كل الأشبال —</option>
       ${state.patrols.map(pr=>`<option value="${pr.id}" ${pointsForm.patrolFilter===pr.id?'selected':''}>${pr.name}</option>`).join('')}
     </select>
-    <label>اختر الكشافين</label>
+    <label>اختر الأشبال</label>
     <div class="row" style="margin-bottom:6px;">
       <button class="btn-secondary" data-action="selectAllStudents">✅ تحديد الكل</button>
       <button class="btn-secondary" data-action="clearAllStudents">✖ إلغاء الكل</button>
@@ -499,13 +506,13 @@ function renderPoints(){
         <label class="check-item">
           <input type="checkbox" data-bulk-student="${s.id}" ${pointsForm.selectedStudents.has(s.id)?'checked':''}>
           ${s.name} <span class="pill">${patrolName(s.patrolId)}</span>
-        </label>`).join('') || `<div class="small-note">لا يوجد كشافون</div>`}
+        </label>`).join('') || `<div class="small-note">لا يوجد أشبال</div>`}
     </div>
     <label>فئة النشاط</label>
     <div class="chip-group" id="pf_bulk_categories">
       ${state.categories.map(c=>`<span class="chip ${pointsForm.categoryId===c.id?'selected':''}" data-cat="${c.id}">${c.icon} ${c.label}</span>`).join('')}
     </div>
-    <label>عدد النقاط لكل كشاف</label>
+    <label>عدد النقاط لكل شبل</label>
     <div class="chip-group" id="pf_bulk_amounts">
       ${amounts.map(a=>`<span class="chip-amt ${pointsForm.amount===a?'selected':''}" data-amt="${a}">+${a}</span>`).join('')}
     </div>
@@ -513,18 +520,18 @@ function renderPoints(){
   </div>
 
   <div class="patch">
-    <h2>🏅 نقاط جماعية للسرب</h2>
-    <label>السرب</label>
+    <h2>🏅 نقاط جماعية للطليعة</h2>
+    <label>الطليعة</label>
     <select id="pf_bulkPatrol">
-      <option value="">— اختر السرب —</option>
+      <option value="">— اختر الطليعة —</option>
       ${state.patrols.map(pr=>`<option value="${pr.id}" ${pointsForm.bulkPatrol===pr.id?'selected':''}>${pr.name}</option>`).join('')}
     </select>
     <div class="chip-group" style="margin-top:8px;">
       ${[5,10,20].map(a=>`<span class="chip-amt ${pointsForm.bulkAmount===a?'selected':''}" data-bulkamt="${a}">+${a}</span>`).join('')}
     </div>
     <div class="row" style="margin-top:12px;">
-      <button class="btn-primary" data-action="grantPatrol">🏅 منح السرب</button>
-      <button class="btn-danger" data-action="deductPatrol">➖ خصم السرب</button>
+      <button class="btn-primary" data-action="grantPatrol">🏅 منح الطليعة</button>
+      <button class="btn-danger" data-action="deductPatrol">➖ خصم الطليعة</button>
     </div>
   </div>
   `;
@@ -538,20 +545,25 @@ let newStudent = { name:'', patrolId:'', photo:'' };
 function renderStudents(){
   return `
   <div class="patch">
-    <h2>➕ إضافة كشاف</h2>
+    <h2>➕ إضافة شبل</h2>
     <label>الاسم</label>
-    <input id="ns_name" value="${newStudent.name}" placeholder="اسم الكشاف">
-    <label>السرب</label>
+    <input id="ns_name" value="${newStudent.name}" placeholder="اسم الشبل">
+    <label>الطليعة</label>
     <select id="ns_patrol">
-      <option value="">— بدون سرب —</option>
+      <option value="">— بدون طليعة —</option>
       ${state.patrols.map(pr=>`<option value="${pr.id}" ${newStudent.patrolId===pr.id?'selected':''}>${pr.name}</option>`).join('')}
     </select>
-    <label>صورة الكشاف (رابط، اختياري)</label>
-    <input id="ns_photo" value="${newStudent.photo}" placeholder="https://...">
-    <button class="btn-primary" style="margin-top:10px;" data-action="addStudent">إضافة</button>
+    <label>صورة الشبل (اختياري)</label>
+    <div class="row" style="align-items:center;">
+      <div class="avatar" style="width:56px;height:56px;" id="ns_preview">${newStudent.photo?`<img src="${newStudent.photo}">`:'📷'}</div>
+      <button class="btn-secondary" data-action="pickStudentPhoto">اختر صورة من جهازك</button>
+      ${newStudent.photo?`<button class="btn-danger" data-action="clearStudentPhoto">إزالة</button>`:''}
+      <input type="file" id="ns_photo_file" accept="image/*" class="hidden">
+    </div>
+    <button class="btn-primary" style="margin-top:14px;" data-action="addStudent">إضافة</button>
   </div>
   <div class="patch">
-    <h2>👥 قائمة الكشافين (${state.students.length})</h2>
+    <h2>👥 قائمة الأشبال (${state.students.length})</h2>
     ${state.students.map(s=>`
       <div class="list-row">
         <div class="row" style="align-items:center;">
@@ -562,7 +574,7 @@ function renderStudents(){
           <div class="badge-total">${totalPoints(s.id)} نقطة</div>
           <button class="btn-danger" data-action="removeStudent" data-id="${s.id}">حذف</button>
         </div>
-      </div>`).join('') || `<div class="small-note">لا يوجد كشافون بعد</div>`}
+      </div>`).join('') || `<div class="small-note">لا يوجد أشبال بعد</div>`}
   </div>`;
 }
 
@@ -571,15 +583,15 @@ let newPatrol = { name:'', color:'#c2542e' };
 function renderPatrols(){
   return `
   <div class="patch">
-    <h2>➕ إضافة سرب</h2>
-    <label>اسم السرب</label>
-    <input id="np_name" value="${newPatrol.name}" placeholder="مثال: سرب الصقر">
-    <label>لون السرب</label>
+    <h2>➕ إضافة طليعة</h2>
+    <label>اسم الطليعة</label>
+    <input id="np_name" value="${newPatrol.name}" placeholder="مثال: طليعة الصقر">
+    <label>لون الطليعة</label>
     <input id="np_color" type="color" value="${newPatrol.color}">
-    <button class="btn-primary" style="margin-top:10px;" data-action="addPatrol">إضافة السرب</button>
+    <button class="btn-primary" style="margin-top:10px;" data-action="addPatrol">إضافة الطليعة</button>
   </div>
   <div class="patch">
-    <h2>🏅 الأسراب وأعضاؤها</h2>
+    <h2>🏅 الطلائع وأعضاؤها</h2>
     ${state.patrols.map(pr=>`
       <div style="margin-bottom:14px;">
         <div class="list-row" style="background:#f0f2f5;">
@@ -595,7 +607,7 @@ function renderPatrols(){
         <div style="padding-right:10px; margin-top:4px;">
           ${state.students.filter(s=>s.patrolId===pr.id).map(s=>`<div class="small-note">• ${s.name} — ${totalPoints(s.id)} نقطة</div>`).join('') || `<div class="small-note">لا يوجد أعضاء</div>`}
         </div>
-      </div>`).join('') || `<div class="small-note">لا يوجد أسراب بعد</div>`}
+      </div>`).join('') || `<div class="small-note">لا يوجد طلائع بعد</div>`}
   </div>
 
   <div class="patch">
@@ -612,6 +624,164 @@ function renderPatrols(){
   </div>`;
 }
 
+/* ===================== BADGES (شارات الأشبال) ===================== */
+let badgeForm = { name:'', icon:'🎖️', color:'#c1272d', reqs:[] };
+let selectedBadge = null; // badge id being tracked
+
+// عدد المتطلبات التي حققها الشبل في شارة معينة
+function studentBadgeCount(badge, studentId){
+  const prog = (badge.progress && badge.progress[studentId]) || [];
+  return prog.length;
+}
+function studentHasBadge(badge, studentId){
+  return badge.requirements && badge.requirements.length>0 &&
+    studentBadgeCount(badge, studentId) >= badge.requirements.length;
+}
+function badgeIconStyle(color){
+  return `width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:26px;background:${color}22;border:2px solid ${color};flex-shrink:0;`;
+}
+
+function renderBadges(){
+  if(selectedBadge){
+    const badge = state.badges.find(b=>b.id===selectedBadge);
+    if(badge) return renderBadgeTracking(badge);
+    selectedBadge = null;
+  }
+  return `
+  <div class="patch">
+    <h2>🎖️ شارات الأشبال</h2>
+    <div class="small-note">أنشئ شارات بمتطلبات، وتابع تقدّم كل شبل نحو إتمامها.</div>
+    ${state.badges.length? `<div style="margin-top:14px;">
+      ${state.badges.map(b=>{
+        const earned = state.students.filter(s=>studentHasBadge(b,s.id)).length;
+        return `<div class="list-row" style="cursor:pointer;" data-action="openBadge" data-id="${b.id}">
+          <div class="row" style="align-items:center;">
+            <div style="${badgeIconStyle(b.color)}">${b.icon}</div>
+            <div>
+              <div class="name">${b.name}</div>
+              <div class="small-note" style="margin-top:2px;">${(b.requirements||[]).length} متطلبات · ${earned} حصلوا عليها</div>
+            </div>
+          </div>
+          <button class="btn-danger" data-action="removeBadge" data-id="${b.id}">حذف</button>
+        </div>`;
+      }).join('')}
+    </div>` : `<div class="small-note" style="margin-top:12px;">لا توجد شارات بعد — أنشئ أول شارة بالأسفل.</div>`}
+  </div>
+
+  <div class="patch">
+    <h2>➕ إنشاء شارة جديدة</h2>
+    <div class="row" style="align-items:flex-end;">
+      <div style="flex:2; min-width:160px;">
+        <label>اسم الشارة</label>
+        <input id="bf_name" value="${badgeForm.name}" placeholder="مثال: شارة الإسعاف">
+      </div>
+      <div style="flex:0 0 90px;">
+        <label>الرمز</label>
+        <input id="bf_icon" value="${badgeForm.icon}" placeholder="🎖️" style="text-align:center;">
+      </div>
+      <div style="flex:0 0 70px;">
+        <label>اللون</label>
+        <input id="bf_color" type="color" value="${badgeForm.color}">
+      </div>
+    </div>
+
+    <label style="margin-top:16px;">المتطلبات</label>
+    <div class="small-note">أضف المتطلبات التي يجب على الشبل تحقيقها للحصول على الشارة.</div>
+    ${badgeForm.reqs.length? `<div style="margin-top:8px;">
+      ${badgeForm.reqs.map((r,i)=>`<div class="list-row"><div>${i+1}. ${r}</div><button class="btn-danger" data-action="removeReq" data-idx="${i}">✖</button></div>`).join('')}
+    </div>`:''}
+    <div class="row" style="margin-top:8px;">
+      <input id="bf_req" placeholder="اكتب متطلباً ثم أضفه" style="flex:1;">
+      <button class="btn-secondary" data-action="addReq">➕ أضف متطلب</button>
+    </div>
+
+    <button class="btn-primary" style="margin-top:16px;" data-action="createBadge">🎖️ حفظ الشارة</button>
+  </div>`;
+}
+
+function renderBadgeTracking(badge){
+  const reqs = badge.requirements || [];
+  return `
+  <div class="patch">
+    <div class="row" style="justify-content:space-between; align-items:center;">
+      <div class="row" style="align-items:center;">
+        <div style="${badgeIconStyle(badge.color)}">${badge.icon}</div>
+        <h2 style="margin:0;">${badge.name}</h2>
+      </div>
+      <button class="btn-ghost" data-action="closeBadge">↩ رجوع للشارات</button>
+    </div>
+    <div class="small-note" style="margin-top:8px;">أشّر على المتطلبات التي حقّقها كل شبل. عند اكتمال جميع المتطلبات تُمنح الشارة تلقائياً.</div>
+    <div class="small-note" style="margin-top:6px;">المتطلبات: ${reqs.map((r,i)=>`${i+1}) ${r}`).join(' — ') || 'لا يوجد متطلبات لهذه الشارة'}</div>
+  </div>
+
+  ${state.students.length? state.students.map(s=>{
+    const prog = (badge.progress && badge.progress[s.id]) || [];
+    const done = prog.length, total = reqs.length;
+    const pct = total? Math.round(done/total*100) : 0;
+    const complete = total>0 && done>=total;
+    return `
+    <div class="patch" style="${complete?`border:2px solid ${badge.color};`:''}">
+      <div class="row" style="justify-content:space-between; align-items:center;">
+        <div class="row" style="align-items:center;">
+          <div class="avatar">${avatarContent(s)}</div>
+          <div>
+            <div class="name">${s.name} ${complete?`<span style="color:${badge.color};">${badge.icon} حصل على الشارة!</span>`:''}</div>
+            <div class="pill">${patrolName(s.patrolId)}</div>
+          </div>
+        </div>
+        <div class="badge-total">${done}/${total}</div>
+      </div>
+      <div style="background:#eef0f3; border-radius:20px; height:8px; margin:12px 0 10px; overflow:hidden;">
+        <div style="height:100%; width:${pct}%; background:${badge.color}; border-radius:20px; transition:width .3s;"></div>
+      </div>
+      <div class="chip-group">
+        ${reqs.map((r,i)=>{
+          const on = prog.includes(i);
+          return `<span class="chip ${on?'selected':''}" data-action="toggleReq" data-badge="${badge.id}" data-student="${s.id}" data-req="${i}">${on?'✓':'○'} ${r}</span>`;
+        }).join('') || '<span class="small-note">لا يوجد متطلبات</span>'}
+      </div>
+    </div>`;
+  }).join('') : `<div class="patch"><div class="small-note">لا يوجد أشبال بعد. أضف أشبالاً من تبويب الأشبال.</div></div>`}
+  `;
+}
+
+/* ===================== POINTS GUIDE (آلية النقاط) ===================== */
+function renderGuide(){
+  const g = state.pointsGuide;
+  return `
+  <div class="patch">
+    <h2>🎯 آلية وضع النقاط</h2>
+    <div class="small-note">حدّد كم نقطة يستحقها كل سلوك أو نشاط. هذا دليل مرجعي يظهر للقادة والأهالي لتوحيد طريقة منح النقاط.</div>
+    ${g.length? `<div style="margin-top:14px;">
+      ${g.map((item,i)=>`
+        <div class="list-row">
+          <div class="name">${item.label}</div>
+          <div class="row" style="align-items:center;">
+            <span class="badge-total">${item.points>=0?'+':''}${item.points} نقطة</span>
+            <button class="btn-danger" data-action="removeGuide" data-idx="${i}">حذف</button>
+          </div>
+        </div>`).join('')}
+    </div>` : `<div class="small-note" style="margin-top:12px;">لا يوجد بنود بعد — أضف أول بند بالأسفل.</div>`}
+    <hr class="divider">
+    <label>السلوك / النشاط</label>
+    <input id="gd_label" placeholder="مثال: الحضور في الوقت المحدد">
+    <label>عدد النقاط</label>
+    <input id="gd_points" type="number" value="1" style="max-width:120px;">
+    <button class="btn-primary" style="margin-top:14px;" data-action="addGuide">➕ إضافة بند</button>
+  </div>`;
+}
+
+/* ===================== RULES (القوانين) ===================== */
+function renderRules(){
+  return `
+  <div class="patch">
+    <h2>📜 القوانين العامة</h2>
+    <div class="small-note">اكتب قوانين المجموعة والتعليمات العامة. تظهر للأهالي في صفحة العرض.</div>
+    <textarea id="rules_text" rows="12" style="margin-top:12px; line-height:2;" placeholder="اكتب القوانين هنا، كل قانون في سطر...">${state.rulesText||''}</textarea>
+    <button class="btn-primary" style="margin-top:14px;" data-action="saveRules">💾 حفظ القوانين</button>
+  </div>`;
+}
+
 /* ===================== LOG ===================== */
 let logFilter = { patrol:'', student:'' };
 function renderLog(){
@@ -622,15 +792,15 @@ function renderLog(){
   <div class="patch">
     <h2>🔎 فلترة</h2>
     <div class="two-col">
-      <div><label>السرب</label>
+      <div><label>الطليعة</label>
         <select id="lf_patrol">
-          <option value="">كل الأسراب</option>
+          <option value="">كل الطلائع</option>
           ${state.patrols.map(pr=>`<option value="${pr.id}" ${logFilter.patrol===pr.id?'selected':''}>${pr.name}</option>`).join('')}
         </select>
       </div>
-      <div><label>الكشاف</label>
+      <div><label>الشبل</label>
         <select id="lf_student">
-          <option value="">كل الكشافين</option>
+          <option value="">كل الأشبال</option>
           ${state.students.map(s=>`<option value="${s.id}" ${logFilter.student===s.id?'selected':''}>${s.name}</option>`).join('')}
         </select>
       </div>
@@ -643,7 +813,7 @@ function renderLog(){
   <div class="patch">
     <h2>📋 سجل النقاط (${entries.length})</h2>
     <table>
-      <tr><th>الكشاف</th><th>السرب</th><th>الفئة</th><th>النقاط</th><th>الأسبوع</th><th>التاريخ</th></tr>
+      <tr><th>الشبل</th><th>الطليعة</th><th>الفئة</th><th>النقاط</th><th>الأسبوع</th><th>التاريخ</th></tr>
       ${entries.map(l=>{
         const s = state.students.find(x=>x.id===l.studentId);
         return `<tr>
@@ -668,10 +838,10 @@ function renderLeague(){
   <div class="patch">
     <h2>📝 تسجيل / جدولة مباراة</h2>
     <div class="two-col">
-      <div><label>السرب الأول</label>
+      <div><label>الطليعة الأول</label>
         <select id="mf_t1"><option value="">— اختر —</option>${state.patrols.map(pr=>`<option value="${pr.id}" ${matchForm.t1===pr.id?'selected':''}>${pr.name}</option>`).join('')}</select>
       </div>
-      <div><label>السرب الثاني</label>
+      <div><label>الطليعة الثاني</label>
         <select id="mf_t2"><option value="">— اختر —</option>${state.patrols.map(pr=>`<option value="${pr.id}" ${matchForm.t2===pr.id?'selected':''}>${pr.name}</option>`).join('')}</select>
       </div>
     </div>
@@ -684,8 +854,8 @@ function renderLeague(){
     </select>
     ${matchForm.status==='played'? `
     <div class="two-col">
-      <div><label>نتيجة السرب الأول</label><input type="number" id="mf_s1" value="${matchForm.s1}"></div>
-      <div><label>نتيجة السرب الثاني</label><input type="number" id="mf_s2" value="${matchForm.s2}"></div>
+      <div><label>نتيجة الطليعة الأول</label><input type="number" id="mf_s1" value="${matchForm.s1}"></div>
+      <div><label>نتيجة الطليعة الثاني</label><input type="number" id="mf_s2" value="${matchForm.s2}"></div>
     </div>` : ''}
     <button class="btn-primary" style="margin-top:12px;" data-action="saveMatch">💾 حفظ المباراة</button>
   </div>
@@ -725,7 +895,7 @@ function parentView(){
   <div class="topbar">
     <div class="crest"><img src="logo.png" alt="شعار مجموعة السنابل الكشفية"></div>
     <h1>${state.troopName}</h1>
-    <div class="sub">عرض الأهالي — نقاط الكشافين</div>
+    <div class="sub">عرض الأهالي — نقاط الأشبال</div>
     <div class="sub-en">Al-Snabel Scouting Group</div>
   </div>
   <div class="top-search">
@@ -748,7 +918,7 @@ function parentView(){
     </div>` : ''}
 
   <div class="patch">
-    <h2>🏅 ترتيب الأسراب</h2>
+    <h2>🏅 ترتيب الطلائع</h2>
     ${topPatrols.map((pr,i)=>`
       <div class="list-row">
         <div class="row" style="align-items:center;">
@@ -757,7 +927,7 @@ function parentView(){
           <div class="name">${pr.name}</div>
         </div>
         <div class="badge-total">${patrolTotal(pr.id)} نقطة</div>
-      </div>`).join('') || `<div class="small-note">لا يوجد أسراب بعد</div>`}
+      </div>`).join('') || `<div class="small-note">لا يوجد طلائع بعد</div>`}
   </div>
 
   ${state.scoutOfWeek? `
@@ -770,6 +940,33 @@ function parentView(){
     <h2>📅 المباريات القادمة</h2>
     ${state.matches.filter(m=>m.status==='upcoming').map(m=>`<div class="list-row"><div>${patrolName(m.t1)} 🆚 ${patrolName(m.t2)}</div><div class="pill">${m.date?fmtDate(m.date):''}</div></div>`).join('') || `<div class="small-note">لا توجد مباريات قادمة</div>`}
   </div>
+
+  ${state.badges && state.badges.length? `
+  <div class="patch">
+    <h2>🎖️ الشارات</h2>
+    ${state.badges.map(b=>{
+      const earned = state.students.filter(s=>studentHasBadge(b,s.id));
+      return `<div class="list-row">
+        <div class="row" style="align-items:center;">
+          <div style="${badgeIconStyle(b.color)}">${b.icon}</div>
+          <div class="name">${b.name}</div>
+        </div>
+        <div class="small-note">${earned.length? earned.map(s=>s.name).join('، ') : 'لم يحصل عليها أحد بعد'}</div>
+      </div>`;
+    }).join('')}
+  </div>`:''}
+
+  ${state.pointsGuide && state.pointsGuide.length? `
+  <div class="patch">
+    <h2>🎯 آلية النقاط</h2>
+    ${state.pointsGuide.map(item=>`<div class="list-row"><div class="name">${item.label}</div><span class="badge-total">${item.points>=0?'+':''}${item.points} نقطة</span></div>`).join('')}
+  </div>`:''}
+
+  ${state.rulesText && state.rulesText.trim()? `
+  <div class="patch">
+    <h2>📜 القوانين العامة</h2>
+    <div class="small-note" style="white-space:pre-wrap; font-size:14px; line-height:2;">${state.rulesText.replace(/</g,'&lt;')}</div>
+  </div>`:''}
 
   <div class="row" style="justify-content:center; margin-top:10px;">
     <button class="btn-ghost" data-action="backHome">🏠 رجوع للرئيسية</button>
@@ -819,8 +1016,44 @@ function wireEvents(){
 
   const impFile = document.getElementById('importFile');
   if(impFile) impFile.onchange = handleImportFile;
+
+  const nsNameEl = document.getElementById('ns_name');
+  if(nsNameEl) nsNameEl.oninput = e=>{ newStudent.name = e.target.value; };
+  const nsPatrolEl = document.getElementById('ns_patrol');
+  if(nsPatrolEl) nsPatrolEl.onchange = e=>{ newStudent.patrolId = e.target.value; };
+  const nsPhotoFile = document.getElementById('ns_photo_file');
+  if(nsPhotoFile) nsPhotoFile.onchange = async e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      newStudent.photo = await compressImage(file, 256);
+      render();
+    }catch(err){ console.error(err); alert('تعذّر تحميل الصورة'); }
+  };
 }
-function setCaretEnd(id){ const el=document.getElementById(id); if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length);} }
+
+// يصغّر الصورة ويحوّلها base64 مربّعة لتناسب حد حجم قاعدة البيانات
+function compressImage(file, size){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width-min)/2, sy = (img.height-min)/2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 const actions = {
   goLogin: ()=>{ session.tab='login'; render(); },
@@ -861,15 +1094,17 @@ const actions = {
 
   addStudent: async ()=>{
     const name = document.getElementById('ns_name').value.trim();
-    if(!name) return alert('اكتب اسم الكشاف');
+    if(!name) return alert('اكتب اسم الشبل');
     const patrolId = document.getElementById('ns_patrol').value;
-    const photo = document.getElementById('ns_photo').value.trim();
+    const photo = newStudent.photo || '';
     await db.collection('students').add({ name, patrolId, photo });
     newStudent = { name:'', patrolId:'', photo:'' };
   },
+  pickStudentPhoto: ()=>{ document.getElementById('ns_photo_file').click(); },
+  clearStudentPhoto: ()=>{ newStudent.photo=''; render(); },
   removeStudent: async (el)=>{
     const id = el.getAttribute('data-id');
-    if(!confirm('حذف هذا الكشاف؟')) return;
+    if(!confirm('حذف هذا الشبل؟')) return;
     const batch = db.batch();
     batch.delete(db.collection('students').doc(id));
     const logsSnap = await db.collection('log').where('studentId','==',id).get();
@@ -879,14 +1114,14 @@ const actions = {
 
   addPatrol: async ()=>{
     const name = document.getElementById('np_name').value.trim();
-    if(!name) return alert('اكتب اسم السرب');
+    if(!name) return alert('اكتب اسم الطليعة');
     const color = document.getElementById('np_color').value;
     await db.collection('patrols').add({ name, color });
     newPatrol = { name:'', color:'#c2542e' };
   },
   removePatrol: async (el)=>{
     const id = el.getAttribute('data-id');
-    if(!confirm('حذف هذا السرب؟ سيصبح أعضاؤه بدون سرب.')) return;
+    if(!confirm('حذف هذا الطليعة؟ سيصبح أعضاؤه بدون طليعة.')) return;
     const batch = db.batch();
     batch.delete(db.collection('patrols').doc(id));
     const membersSnap = await db.collection('students').where('patrolId','==',id).get();
@@ -904,6 +1139,74 @@ const actions = {
     await db.collection('categories').doc(id).delete();
   },
 
+  addGuide: async ()=>{
+    const label = document.getElementById('gd_label').value.trim();
+    const points = Number(document.getElementById('gd_points').value||0);
+    if(!label) return alert('اكتب السلوك أو النشاط');
+    const guide = [...state.pointsGuide, { label, points }];
+    await db.collection('meta').doc('app').set({ pointsGuide: guide }, { merge:true });
+  },
+  removeGuide: async (el)=>{
+    const idx = Number(el.getAttribute('data-idx'));
+    const guide = state.pointsGuide.filter((_,i)=>i!==idx);
+    await db.collection('meta').doc('app').set({ pointsGuide: guide }, { merge:true });
+  },
+  saveRules: async ()=>{
+    const text = document.getElementById('rules_text').value;
+    await db.collection('meta').doc('app').set({ rulesText: text }, { merge:true });
+    alert('تم حفظ القوانين');
+  },
+
+  addReq: ()=>{
+    const el = document.getElementById('bf_req');
+    const val = el.value.trim();
+    if(!val) return;
+    // احفظ اسم واللون والرمز الحاليين قبل إعادة الرسم
+    badgeForm.name = document.getElementById('bf_name').value;
+    badgeForm.icon = document.getElementById('bf_icon').value || '🎖️';
+    badgeForm.color = document.getElementById('bf_color').value;
+    badgeForm.reqs = [...badgeForm.reqs, val];
+    render();
+  },
+  removeReq: (el)=>{
+    const idx = Number(el.getAttribute('data-idx'));
+    badgeForm.name = document.getElementById('bf_name').value;
+    badgeForm.icon = document.getElementById('bf_icon').value || '🎖️';
+    badgeForm.color = document.getElementById('bf_color').value;
+    badgeForm.reqs = badgeForm.reqs.filter((_,i)=>i!==idx);
+    render();
+  },
+  createBadge: async ()=>{
+    const name = document.getElementById('bf_name').value.trim();
+    const icon = document.getElementById('bf_icon').value.trim() || '🎖️';
+    const color = document.getElementById('bf_color').value;
+    if(!name) return alert('اكتب اسم الشارة');
+    if(badgeForm.reqs.length===0) return alert('أضف متطلباً واحداً على الأقل');
+    await db.collection('badges').add({ name, icon, color, requirements: badgeForm.reqs, progress: {} });
+    badgeForm = { name:'', icon:'🎖️', color:'#c1272d', reqs:[] };
+    render();
+  },
+  removeBadge: async (el, e)=>{
+    if(e) e.stopPropagation();
+    const id = el.getAttribute('data-id');
+    if(!confirm('حذف هذه الشارة؟')) return;
+    await db.collection('badges').doc(id).delete();
+  },
+  openBadge: (el)=>{ selectedBadge = el.getAttribute('data-id'); render(); },
+  closeBadge: ()=>{ selectedBadge = null; render(); },
+  toggleReq: async (el)=>{
+    const badgeId = el.getAttribute('data-badge');
+    const studentId = el.getAttribute('data-student');
+    const reqIdx = Number(el.getAttribute('data-req'));
+    const badge = state.badges.find(b=>b.id===badgeId);
+    if(!badge) return;
+    const progress = Object.assign({}, badge.progress||{});
+    const arr = new Set(progress[studentId]||[]);
+    if(arr.has(reqIdx)) arr.delete(reqIdx); else arr.add(reqIdx);
+    progress[studentId] = [...arr];
+    await db.collection('badges').doc(badgeId).set({ progress }, { merge:true });
+  },
+
   resetLogFilter: ()=>{ logFilter={patrol:'',student:''}; render(); },
   clearLog: async ()=>{
     if(!confirm('مسح كل السجل؟ لن يؤثر على المجاميع القديمة إلا بعد المسح.')) return;
@@ -916,7 +1219,7 @@ const actions = {
   saveMatch: async ()=>{
     const t1 = document.getElementById('mf_t1').value;
     const t2 = document.getElementById('mf_t2').value;
-    if(!t1 || !t2 || t1===t2) return alert('اختر سربين مختلفين');
+    if(!t1 || !t2 || t1===t2) return alert('اختر طليعةين مختلفين');
     const status = document.getElementById('mf_status').value;
     const date = document.getElementById('mf_date').value;
     const s1 = status==='played'? Number(document.getElementById('mf_s1').value||0) : 0;
@@ -944,7 +1247,7 @@ async function handleImportFile(e){
       const data = JSON.parse(reader.result);
       if(!confirm('هذا رح يستبدل كل البيانات الحالية بقاعدة البيانات المباشرة بالنسخة المستوردة. متأكد؟')) return;
       const batch = db.batch();
-      for(const col of ['patrols','categories','students','log','matches']){
+      for(const col of ['patrols','categories','students','log','matches','badges']){
         const snap = await db.collection(col).get();
         snap.forEach(d=>batch.delete(d.ref));
       }
@@ -955,8 +1258,9 @@ async function handleImportFile(e){
       (data.students||[]).forEach(x=>{ const {id,...rest}=x; batch2.set(db.collection('students').doc(), rest); });
       (data.log||[]).forEach(x=>{ const {id,...rest}=x; batch2.set(db.collection('log').doc(), rest); });
       (data.matches||[]).forEach(x=>{ const {id,...rest}=x; batch2.set(db.collection('matches').doc(), rest); });
+      (data.badges||[]).forEach(x=>{ const {id,...rest}=x; batch2.set(db.collection('badges').doc(), rest); });
       await batch2.commit();
-      await db.collection('meta').doc('app').set({ troopName:data.troopName, week:data.week||1, scoutOfWeek:data.scoutOfWeek||null }, { merge:true });
+      await db.collection('meta').doc('app').set({ troopName:data.troopName, week:data.week||1, scoutOfWeek:data.scoutOfWeek||null, rulesText:data.rulesText||"", pointsGuide:data.pointsGuide||[] }, { merge:true });
       alert('تم استيراد النسخة بنجاح');
     }catch(err){ console.error(err); alert('ملف غير صالح أو حدث خطأ بالاستيراد'); }
   };
@@ -965,14 +1269,14 @@ async function handleImportFile(e){
 
 async function applyIndividual(sign){
   const studentId = document.getElementById('pf_student').value;
-  if(!studentId) return alert('اختر كشافاً');
+  if(!studentId) return alert('اختر شبلاً');
   if(!pointsForm.categoryId) return alert('اختر فئة النشاط');
   const cat = state.categories.find(c=>c.id===pointsForm.categoryId);
   await db.collection('log').add({ studentId, categoryLabel:`${cat.icon} ${cat.label}`, amount: sign*pointsForm.amount, week: state.week, date: Date.now() });
 }
 async function applyBulk(sign){
   if(!pointsForm.categoryId) return alert('اختر فئة النشاط');
-  if(pointsForm.selectedStudents.size===0) return alert('حدد كشافين على الأقل');
+  if(pointsForm.selectedStudents.size===0) return alert('حدد أشبال على الأقل');
   const cat = state.categories.find(c=>c.id===pointsForm.categoryId);
   const batch = db.batch();
   pointsForm.selectedStudents.forEach(id=>{
@@ -984,12 +1288,12 @@ async function applyBulk(sign){
 }
 async function applyPatrolBulk(sign){
   const patrolId = document.getElementById('pf_bulkPatrol').value;
-  if(!patrolId) return alert('اختر السرب');
+  if(!patrolId) return alert('اختر الطليعة');
   const members = state.students.filter(s=>s.patrolId===patrolId);
-  if(members.length===0) return alert('هذا السرب لا يوجد فيه أعضاء');
+  if(members.length===0) return alert('هذا الطليعة لا يوجد فيه أعضاء');
   const batch = db.batch();
   members.forEach(s=>{
-    batch.set(db.collection('log').doc(), { studentId:s.id, categoryLabel:'🏅 نقاط سرب', amount: sign*pointsForm.bulkAmount, week: state.week, date: Date.now() });
+    batch.set(db.collection('log').doc(), { studentId:s.id, categoryLabel:'🏅 نقاط طليعة', amount: sign*pointsForm.bulkAmount, week: state.week, date: Date.now() });
   });
   await batch.commit();
 }
@@ -1032,12 +1336,15 @@ async function initFirebase(){
   unsubs.push(listenCollection('log','log'));
   unsubs.push(listenCollection('matches','matches'));
   unsubs.push(listenCollection('weekArchive','weekArchive'));
+  unsubs.push(listenCollection('badges','badges'));
 
   unsubs.push(db.collection('meta').doc('app').onSnapshot(doc=>{
     const data = doc.data() || {};
     state.troopName = data.troopName || state.troopName;
     state.week = data.week || 1;
     state.scoutOfWeek = data.scoutOfWeek || null;
+    state.rulesText = data.rulesText || "";
+    state.pointsGuide = data.pointsGuide || [];
     synced = true;
     render();
   }, err=>console.error('meta', err)));
